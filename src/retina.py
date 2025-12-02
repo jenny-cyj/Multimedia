@@ -3,7 +3,7 @@ from __future__ import print_function
 import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
-from retina_lpd.data import cfg_mnet, cfg_re50
+from retina_lpd.data import cfg_mnet, cfg_re50, cfg_mnetv3
 from retina_lpd.layers.functions.prior_box import PriorBox
 from retina_lpd.utils.nms.py_cpu_nms import py_cpu_nms
 import cv2
@@ -412,7 +412,7 @@ def extract_retina(image, path):
     vis_thres = 0.5
     
     torch.set_grad_enabled(False)
-    cfg = cfg_mnet
+    cfg = cfg_mnetv3
 
     # net and model
     net = Retina(cfg=cfg, phase='test')

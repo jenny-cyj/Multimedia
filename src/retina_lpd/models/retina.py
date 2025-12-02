@@ -93,19 +93,29 @@ class Retina(nn.Module):
             backbone = models.resnet50(pretrained=cfg['pretrain'])
             self.body = _utils.IntermediateLayerGetter(backbone, cfg['return_layers'])
 
-        '''
         elif cfg['name'] == 'mobilenetv3':
-            from models.mobile_net_v3 import mobilenetv3
-            backbone = mobilenetv3() 
-            self.body = _utils.IntermediateLayerGetter(backbone, cfg['return_layers'])   
-        '''
+            from .mobile_net_v3 import MobileNetV3  # 导入MobileNetV3类
+            # 初始化MobileNetV3（根据需求选择'mode'为'large'或'small'，width_mult控制宽度缩放）
+            backbone = MobileNetV3(mode='small', width_mult=1.0)  # 建议从'small'开始尝试，更轻量
+            if cfg['pretrain']:
+                # 若有预训练权重，加载权重（需自行准备MobileNetV3的预训练模型）
+                checkpoint = torch.load("retina_lpd/weights/mobilenetv3_pretrain.pth", map_location='cpu')
+                backbone.load_state_dict(checkpoint, strict=False)  # 忽略不匹配的层（如分类头）
+            # 指定从MobileNetV3中提取的特征层名称（需与MobileNetV3的特征输出对应）
+            self.body = _utils.IntermediateLayerGetter(backbone, cfg['return_layers'])
         
         in_channels_stage2 = cfg['in_channel']
-        in_channels_list = [
-            in_channels_stage2 * 2,
-            in_channels_stage2 * 4,
-            in_channels_stage2 * 8,
-        ]
+        in_channels_list = [None] * 3  # 这里建议明确初始元素（比如None），避免空列表逻辑问题
+
+        if cfg['name'] == 'mobilenet0.25':
+            in_channels_list = [
+                in_channels_stage2 * 2,
+                in_channels_stage2 * 4,
+                in_channels_stage2 * 8  # 去掉多余逗号
+            ]
+        elif cfg['name'] == 'mobilenetv3':
+            in_channels_list = [24, 40, 96]
+
         out_channels = cfg['out_channel']
         self.fpn = FPN(in_channels_list, out_channels)
         self.ssh1 = SSH(out_channels, out_channels)
